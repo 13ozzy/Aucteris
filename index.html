@@ -575,8 +575,28 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; a
     var email = document.getElementById('f-email');
     if (missing.length) { status.style.color = 'var(--bad)'; status.textContent = 'Please fill in your name, business name and email.'; missing[0].focus(); return; }
     if (!email.checkValidity()) { status.style.color = 'var(--bad)'; status.textContent = 'That email address looks incomplete. Check it and try again.'; email.focus(); return; }
-    status.style.color = 'var(--amber)';
-    status.textContent = 'Preview only: this form is not connected yet. Email contact@aucterisai.com in the meantime.';
+    var btn = form.querySelector('button[type="submit"]');
+    var data = Object.fromEntries(new FormData(form));
+    data._subject = 'New free audit request: ' + (data.business || data.name);
+    data._replyto = data.email;
+    data._template = 'table';
+    data._captcha = 'false';
+    btn.disabled = true;
+    status.style.color = 'var(--muted)';
+    status.textContent = 'Sending...';
+    fetch('https://formsubmit.co/ajax/contact@aucterisai.com', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(data)
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (String(d.success) !== 'true') throw new Error(d.message || 'failed');
+      status.style.color = 'var(--good)';
+      status.textContent = "Thanks! We got your request and will be in touch soon.";
+      form.reset();
+    }).catch(function () {
+      status.style.color = 'var(--bad)';
+      status.textContent = 'Something went wrong. Please email us at contact@aucterisai.com.';
+    }).finally(function () { btn.disabled = false; });
   });
 })();
 </script>
